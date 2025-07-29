@@ -1,0 +1,18 @@
+[
+    {
+        "pergunta": "Como redefinir minha senha?",
+        "resposta": "Para redefinir sua senha, vá até a tela de login e clique em 'Esqueci minha senha'."
+    },
+    {
+        "pergunta": "O aplicativo está travando na inicialização.",
+        "resposta": "Reinstale o app ou limpe o cache nas configurações do dispositivo."
+    },
+    {
+        "pergunta": "Como posso alterar meu plano de assinatura?",
+        "resposta": "Você pode alterar seu plano acessando as configurações da sua conta e escolhendo 'Assinatura'."
+    },
+    {
+        "pergunta": "Não estou recebendo notificações.",
+        "resposta": "Verifique se as notificações estão ativadas nas configurações do sistema e do aplicativo."
+    }
+]
