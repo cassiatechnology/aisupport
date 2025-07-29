@@ -35,12 +35,21 @@ def responder_mensagem(req: func.HttpRequest) -> func.HttpResponse:
         search_client = SearchClient(endpoint=SEARCH_ENDPOINT, index_name=INDEX_NAME, credential=credential)
         results = search_client.search(user_msg, top=1)
 
+        logging.info("Verificando resultado...")
+        logging.info(f"Resultado Search Client: {len(list(results))}")
+
         resposta = None
         for r in results:
-            score = r.get('@search.score', 0)
-            logging.info(f"Score: {score}")
-
-            if score >= 1.2:
+            logging.info(f"Document keys: {r.keys()}")
+            
+            score = r.get('@search.score')
+            
+            if score is not None:
+                logging.info(f"Score: {score}")
+            else:
+                logging.warning("⚠️ Score não encontrado no documento retornado.")
+            
+            if score and score >= 1.2:
                 resposta = r.get("resposta")
             break
 
