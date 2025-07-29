@@ -4,13 +4,14 @@ from azure.search.documents import SearchClient
 import urllib.parse
 import os
 import logging
-import openai
+from openai import OpenAI
 
 # Configurações do Azure Search
 SEARCH_ENDPOINT = "https://aisupportkb.search.windows.net"
-SEARCH_KEY = os.environ.get("SEARCH_KEY")
 INDEX_NAME = "kb-index"
 MODEL_NAME = "gpt-4o-mini"
+SEARCH_KEY = os.environ.get("SEARCH_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 # Função principal da Azure Function
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
@@ -23,6 +24,12 @@ def responder_mensagem(req: func.HttpRequest) -> func.HttpResponse:
 
         logging.info(f"Pergunta: {user_msg}")
 
+        if not SEARCH_KEY or not OPENAI_API_KEY:
+            return func.HttpResponse(
+                "Chaves de API não configuradas corretamente.",
+                status_code=500
+            )
+
         # Azure Search
         credential = AzureKeyCredential(SEARCH_KEY)
         search_client = SearchClient(endpoint=SEARCH_ENDPOINT, index_name=INDEX_NAME, credential=credential)
@@ -33,7 +40,7 @@ def responder_mensagem(req: func.HttpRequest) -> func.HttpResponse:
             score = r.get('@search.score', 0)
             logging.info(f"Score: {score}")
 
-            if score >= 0.6:
+            if score >= 1.2:
                 resposta = r.get("resposta")
             break
 
@@ -45,8 +52,8 @@ def responder_mensagem(req: func.HttpRequest) -> func.HttpResponse:
                 "Responda de forma clara, objetiva e empática, como um assistente de suporte humano faria, "
                 "utilizando seu conhecimento geral para ajudar o usuário da melhor forma possível."
                 )
-
-            client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            
+            client = OpenAI(api_key=OPENAI_API_KEY)
 
             response = client.chat.completions.create(
                 model=MODEL_NAME,

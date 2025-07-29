@@ -1,30 +1,38 @@
 from azure.core.credentials import AzureKeyCredential
+from azure.core.exceptions import ResourceNotFoundError
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import SearchIndex, SimpleField, SearchableField
 from azure.search.documents import SearchClient
 import requests
 import os
 
-# Substitua pela sua chave admin do recurso Azure Cognitive Search
+# Chave admin do Azure Cognitive Search (Variável de ambiente)
 admin_key = os.environ.get("SEARCH_KEY")
 service_name = "aisupportkb"
 index_name = "kb-index"
 
+if not admin_key:
+    raise ValueError("Variável de ambiente SEARCH_KEY não foi definida.")
+
 # 1. Criar índice
 endpoint = f"https://{service_name}.search.windows.net"
 credential = AzureKeyCredential(admin_key)
-index_client = SearchIndexClient(endpoint=endpoint, credential=credential)
+index_client = SearchIndexClient(
+    endpoint=endpoint,
+    credential=credential,
+    api_version="2023-11-01"
+)
 
 # Excluir índice antigo, se existir
 try:
     index_client.delete_index(index_name)
-except:
+except ResourceNotFoundError:
     pass
 
 fields = [
     SimpleField(name="id", type="Edm.String", key=True),
-    SearchableField(name="pergunta", type="Edm.String", analyzer_name="standard"),
-    SearchableField(name="resposta", type="Edm.String", analyzer_name="standard")
+    SearchableField(name="pergunta", type="Edm.String", language="pt-br"),
+    SimpleField(name="resposta", type="Edm.String")
 ]
 
 index = SearchIndex(name=index_name, fields=fields)
