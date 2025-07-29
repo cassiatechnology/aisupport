@@ -1,81 +1,91 @@
 import azure.functions as func
-from azure.core.credentials import AzureKeyCredential
-from azure.search.documents import SearchClient
 import urllib.parse
-import os
 import logging
+import json
+import os
+import math
 from openai import OpenAI
 
-# Configurações do Azure Search
-SEARCH_ENDPOINT = "https://aisupportkb.search.windows.net"
-INDEX_NAME = "kb-index"
-MODEL_NAME = "gpt-4o-mini"
-SEARCH_KEY = os.environ.get("SEARCH_KEY")
+# Configurações
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+MODEL_CHAT = "gpt-4o-mini"
+MODEL_EMBEDDING = "text-embedding-3-small"
+EMBEDDINGS_PATH = "kb_embeddings.json"
+SCORE_SIMILARITY = 0.6
 
-# Função principal da Azure Function
+# Inicializa o cliente da OpenAI
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+# Carrega os dados de embeddings
+with open(EMBEDDINGS_PATH, "r", encoding="utf-8") as f:
+    kb_data = json.load(f)
+
+def gerar_embedding(texto: str):
+    response = client.embeddings.create(
+        model=MODEL_EMBEDDING,
+        input=texto.replace("\n", " ")
+    )
+    return response.data[0].embedding
+
+def cosine_similarity(vec1, vec2):
+    dot = sum(a * b for a, b in zip(vec1, vec2))
+    norm1 = math.sqrt(sum(a * a for a in vec1))
+    norm2 = math.sqrt(sum(b * b for b in vec2))
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+    return dot / (norm1 * norm2)
+
+# Azure Function principal
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 @app.route(route="responder_mensagem", methods=["POST"])
 def responder_mensagem(req: func.HttpRequest) -> func.HttpResponse:
     try:
         req_body = urllib.parse.parse_qs(req.get_body().decode())
-        user_msg = req_body.get("Body", [""])[0]
-
+        user_msg = req_body.get("Body", [""])[0].strip()
         logging.info(f"Pergunta: {user_msg}")
 
-        if not SEARCH_KEY or not OPENAI_API_KEY:
-            return func.HttpResponse(
-                "Chaves de API não configuradas corretamente.",
-                status_code=500
-            )
+        if not OPENAI_API_KEY:
+            return func.HttpResponse("API Key não configurada.", status_code=500)
 
-        # Azure Search
-        credential = AzureKeyCredential(SEARCH_KEY)
-        search_client = SearchClient(endpoint=SEARCH_ENDPOINT, index_name=INDEX_NAME, credential=credential)
-        results = search_client.search(user_msg, top=1)
+        # 1. Gerar embedding da pergunta do usuário
+        embedding_usuario = gerar_embedding(user_msg)
 
-        logging.info("Verificando resultado...")
-        logging.info(f"Resultado Search Client: {len(list(results))}")
+        # 2. Calcular similaridade com a base
+        melhor_score = 0
+        melhor_resposta = None
 
-        resposta = None
-        for r in results:
-            logging.info(f"Document keys: {r.keys()}")
-            
-            score = r.get('@search.score')
-            
-            if score is not None:
-                logging.info(f"Score: {score}")
-            else:
-                logging.warning("⚠️ Score não encontrado no documento retornado.")
-            
-            if score and score >= 1.2:
-                resposta = r.get("resposta")
-            break
+        for item in kb_data:
+            score = cosine_similarity(embedding_usuario, item["embedding"])
+            if score > melhor_score:
+                melhor_score = score
+                melhor_resposta = item["resposta"]
 
-        # Se não achou uma resposta relevante, usa a OpenAI
-        if not resposta:
+        logging.info(f"Melhor similaridade: {melhor_score:.4f}")
+
+        # 3. Decisão de retorno
+        if melhor_score >= SCORE_SIMILARITY:
+            logging.info(f"Fonte da resposta: Knowledge Base (KB)")
+            resposta = melhor_resposta
+        else:
+            logging.info(f"Fonte da resposta: OpenAi")
             prompt = (
-                f"Um usuário perguntou: '{user_msg}'. "
-                "Não encontramos uma resposta exata na base de conhecimento. "
-                "Responda de forma clara, objetiva e empática, como um assistente de suporte humano faria, "
-                "utilizando seu conhecimento geral para ajudar o usuário da melhor forma possível."
-                )
-            
-            client = OpenAI(api_key=OPENAI_API_KEY)
-
+                f"Um usuário perguntou: '{user_msg}'.\n"
+                "Não encontramos uma resposta exata na base de conhecimento.\n"
+                "Responda de forma clara, objetiva e empática, como um atendente humano faria."
+            )
             response = client.chat.completions.create(
-                model=MODEL_NAME,
+                model=MODEL_CHAT,
                 messages=[
                     {"role": "system", "content": "Você é um assistente de suporte inteligente."},
                     {"role": "user", "content": prompt}
                 ]
             )
-
             resposta = response.choices[0].message.content.strip()
 
-        logging.info(f"Resposta: {resposta}")
+        logging.info(f"Resposta final: {resposta}")
         return func.HttpResponse(resposta, status_code=200, mimetype="text/plain")
 
     except Exception as e:
+        logging.error(f"Erro: {str(e)}")
         return func.HttpResponse(f"Erro: {str(e)}", status_code=500)
