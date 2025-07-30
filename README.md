@@ -10,9 +10,9 @@ Este projeto é um MVP de um sistema inteligente de atendimento ao cliente via *
 2. A Azure Function recebe o texto e gera um embedding
 3. O embedding é comparado com os da base (`kb_embeddings.json`)
 4. Se a similaridade for suficiente (≥ 0.6), retorna a resposta da KB
-5. Caso contrário, usa o GPT-4o Mini para responder com IA generativa
-6. Se a pergunta não for respondida pela KB, é aberto um ticket via API
-7. A API grava o ticket em um banco de dados SQL no Azure
+5. Caso contrário, é aberto um ticket via API
+6. A API grava o ticket em um banco de dados SQL no Azure e retorna o Id
+7. Se a pergunta não foi respondida pela KB, então usa o GPT-4o Mini para responder com IA generativa informando o Id do Ticket aberto
 
 ---
 
