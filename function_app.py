@@ -4,6 +4,7 @@ import logging
 import json
 import os
 import math
+import requests
 from openai import OpenAI
 
 # Configurações
@@ -12,6 +13,7 @@ MODEL_CHAT = "gpt-4o-mini"
 MODEL_EMBEDDING = "text-embedding-3-small"
 EMBEDDINGS_PATH = "kb_embeddings.json"
 SCORE_SIMILARITY = 0.6
+TICKET_API_URL = "https://aisupportapi-f0frfeh8abc9g2ey.brazilsouth-01.azurewebsites.net/api/ticket"
 
 # Inicializa o cliente da OpenAI
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -35,6 +37,28 @@ def cosine_similarity(vec1, vec2):
         return 0.0
     return dot / (norm1 * norm2)
 
+def criar_ticket(pergunta: str):
+    payload = {
+        "category": "Dúvida",
+        "description": pergunta,
+        "status": 2
+    }
+    try:
+        response = requests.post(TICKET_API_URL, json=payload)
+
+        mensagem = ""
+
+        if response.status_code == 201:
+            ticket = response.json()
+            ticket_id = ticket.get("id")
+            mensagem = f"Ticket criado com ID: {ticket_id}"
+        else:
+            mensagem = f"Erro ao criar ticket: {response.status_code} - {response.text}"
+
+        return mensagem
+    except Exception as e:
+        logging.error(f"Erro ao criar ticket: {str(e)}")
+
 # Azure Function principal
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -48,10 +72,8 @@ def responder_mensagem(req: func.HttpRequest) -> func.HttpResponse:
         if not OPENAI_API_KEY:
             return func.HttpResponse("API Key não configurada.", status_code=500)
 
-        # 1. Gerar embedding da pergunta do usuário
         embedding_usuario = gerar_embedding(user_msg)
 
-        # 2. Calcular similaridade com a base
         melhor_score = 0
         melhor_resposta = None
 
@@ -63,16 +85,17 @@ def responder_mensagem(req: func.HttpRequest) -> func.HttpResponse:
 
         logging.info(f"Melhor similaridade: {melhor_score:.4f}")
 
-        # 3. Decisão de retorno
         if melhor_score >= SCORE_SIMILARITY:
-            logging.info(f"Fonte da resposta: Knowledge Base (KB)")
+            logging.info("Fonte da resposta: Knowledge Base (KB)")
             resposta = melhor_resposta
         else:
-            logging.info(f"Fonte da resposta: OpenAi")
+            logging.info("Fonte da resposta: OpenAI")
+            ticket_info = criar_ticket(user_msg)
             prompt = (
                 f"Um usuário perguntou: '{user_msg}'.\n"
                 "Não encontramos uma resposta exata na base de conhecimento.\n"
-                "Responda de forma clara, objetiva e empática, como um atendente humano faria."
+                "Responda de forma clara, objetiva e empática, como um atendente humano faria.\n"
+                "Informe ao usuário que você abrirá um chamado para esclarecer a dúvida dele."
             )
             response = client.chat.completions.create(
                 model=MODEL_CHAT,
@@ -81,7 +104,7 @@ def responder_mensagem(req: func.HttpRequest) -> func.HttpResponse:
                     {"role": "user", "content": prompt}
                 ]
             )
-            resposta = response.choices[0].message.content.strip()
+            resposta = f"{response.choices[0].message.content.strip()}\n{ticket_info}"
 
         logging.info(f"Resposta final: {resposta}")
         return func.HttpResponse(resposta, status_code=200, mimetype="text/plain")
