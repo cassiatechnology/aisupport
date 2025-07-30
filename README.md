@@ -4,14 +4,15 @@ Este projeto é um MVP de um sistema inteligente de atendimento ao cliente via *
 
 ---
 
-## 📌 Funcionalidades
+## 📌 Como Funciona
 
-- Recebe mensagens via WhatsApp (Twilio)
-- Analisa semântica da pergunta com embeddings
-- Busca resposta similar na base vetorizada (`kb_embeddings.json`)
-- Gera resposta com OpenAI se não encontrar similaridade suficiente
-- Cria ticket automaticamente via API REST (caso aplicável)
-- Registra e responde ao usuário com empatia e clareza
+1. O usuário envia uma pergunta via WhatsApp
+2. A Azure Function recebe o texto e gera um embedding
+3. O embedding é comparado com os da base (`kb_embeddings.json`)
+4. Se a similaridade for suficiente (≥ 0.6), retorna a resposta da KB
+5. Caso contrário, usa o GPT-4o Mini para responder com IA generativa
+6. Se a pergunta não for respondida pela KB, é aberto um ticket via API
+7. A API grava o ticket em um banco de dados SQL no Azure
 
 ---
 
