@@ -18,7 +18,7 @@ Este projeto é um MVP de um sistema inteligente de atendimento ao cliente via *
 
 ## 🧠 Visão Geral da Arquitetura
 
-![Diagrama da Arquitetura](./DiagramaAiSupport.png)
+![Diagrama da Arquitetura](./DiagramaAiSupportMermaid.png)
 
 ---
 
