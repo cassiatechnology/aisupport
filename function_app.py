@@ -37,10 +37,13 @@ def cosine_similarity(vec1, vec2):
         return 0.0
     return dot / (norm1 * norm2)
 
-def criar_ticket(pergunta: str):
+def criar_ticket(pergunta: str, telefone_remetente: str, nome_remetente: str):
+
+    description = f"Nome: {nome_remetente} | {telefone_remetente} | Mensagem: {pergunta}"
+
     payload = {
         "category": "Dúvida",
-        "description": pergunta,
+        "description": description,
         "status": 1
     }
     try:
@@ -67,6 +70,8 @@ def responder_mensagem(req: func.HttpRequest) -> func.HttpResponse:
     try:
         req_body = urllib.parse.parse_qs(req.get_body().decode())
         user_msg = req_body.get("Body", [""])[0].strip()
+        telefone_remetente = req_body.get("From", [""])[0]
+        nome_remetente = req_body.get("ProfileName", [""])[0]
         logging.info(f"Pergunta: {user_msg}")
 
         if not OPENAI_API_KEY:
@@ -90,7 +95,7 @@ def responder_mensagem(req: func.HttpRequest) -> func.HttpResponse:
             resposta = melhor_resposta
         else:
             logging.info("Fonte da resposta: OpenAI")
-            ticket_info = criar_ticket(user_msg)
+            ticket_info = criar_ticket(user_msg, telefone_remetente, nome_remetente)
             prompt = (
                 f"Um usuário perguntou: '{user_msg}'.\n"
                 "Não encontramos uma resposta exata na base de conhecimento.\n"
