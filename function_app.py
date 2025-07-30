@@ -41,7 +41,7 @@ def criar_ticket(pergunta: str):
     payload = {
         "category": "Dúvida",
         "description": pergunta,
-        "status": 2
+        "status": 1
     }
     try:
         response = requests.post(TICKET_API_URL, json=payload)
