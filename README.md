@@ -47,7 +47,38 @@ Este projeto é um MVP de um sistema inteligente de atendimento ao cliente via *
 
 - **🧰 Outros**
   - 🔍 **Azure Cognitive Search** – usado inicialmente com busca tradicional (etapa removida ao final)
+---
 
+## 📚 Knowledge Base (KB)
+
+A base de conhecimento é utilizada para responder perguntas frequentes de forma automática e rápida, sem a necessidade de intervenção humana. Essas perguntas e respostas foram vetorizadas utilizando embeddings e armazenadas em um arquivo (`kb_embeddings.json`) no Azure Blob Storage.
+
+Durante a execução, o sistema compara a similaridade semântica da mensagem do usuário com os dados da KB. Se o score for maior ou igual a **0.6**, a resposta é retornada diretamente. Caso contrário, a pergunta é encaminhada para a OpenAI e um ticket é criado.
+
+### Exemplo de conteúdo da KB:
+
+```json
+[
+  {
+    "pergunta": "Como redefinir minha senha?",
+    "resposta": "Para redefinir sua senha, vá até a tela de login e clique em 'Esqueci minha senha'."
+  },
+  {
+    "pergunta": "O aplicativo está travando na inicialização.",
+    "resposta": "Reinstale o app ou limpe o cache nas configurações do dispositivo."
+  },
+  {
+    "pergunta": "Como posso alterar meu plano de assinatura?",
+    "resposta": "Você pode alterar seu plano acessando as configurações da sua conta e escolhendo 'Assinatura'."
+  },
+  {
+    "pergunta": "Não estou recebendo notificações.",
+    "resposta": "Verifique se as notificações estão ativadas nas configurações do sistema e do aplicativo."
+  }
+]
+```
+
+> 🔎 As perguntas da KB podem ser expandidas a qualquer momento, bastando atualizar o arquivo original e gerar os embeddings novamente com `gerar_embeddings.py`.
 
 ---
 ## 🧪 Como Testar no WhatsApp
