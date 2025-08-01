@@ -1,5 +1,9 @@
 # 🤖 Projeto de Atendimento Inteligente via WhatsApp com IA e API de Tickets
 
+> 👨‍💻 Desenvolvido por **Danilo Ferreira de Cássia**  
+> 💼 Engenheiro de Software | Especialista em Soluções com Inteligência Artificial e Azure  
+> 🌐 [LinkedIn](https://www.linkedin.com/in/danilodecassia/) · [GitHub](https://github.com/cassiatechnology)
+
 Este projeto é um MVP de um sistema inteligente de atendimento ao cliente via **WhatsApp**, utilizando **OpenAI**, **Azure Functions** e uma **API de tickets em .NET**. Ele é capaz de interpretar mensagens, buscar respostas por similaridade semântica e, se necessário, abrir tickets automaticamente.
 
 ---
@@ -9,7 +13,7 @@ Este projeto é um MVP de um sistema inteligente de atendimento ao cliente via *
 1. O usuário envia uma pergunta via WhatsApp
 2. A Azure Function recebe o texto e gera um embedding
 3. O embedding é comparado com os da base (`kb_embeddings.json`)
-4. Se a similaridade for suficiente (≥ 0.6), retorna a resposta da KB
+4. Se a similaridade for suficiente (≥ 0.6), retorna a resposta da Knowledge Base (KB)
 5. Caso contrário, é aberto um ticket via API
 6. A API grava o ticket em um banco de dados SQL no Azure e retorna o Id
 7. Se a pergunta não foi respondida pela KB, então usa o GPT-4o Mini para responder com IA generativa informando o Id do Ticket aberto
@@ -27,6 +31,7 @@ Este projeto é um MVP de um sistema inteligente de atendimento ao cliente via *
 - **🧩 Frontend e Integração**
   - 💬 **WhatsApp** (via Twilio Webhook)
   - ⚡ **Azure Functions (Python)** – backend escalável para processamento de mensagens
+  - 🌐 **Blazor WebAssembly** – SPA (Single Page Application) para exibição dos tickets
   - 🚀 **GitHub Actions + Azure (CI/CD)** – deploy contínuo automatizado
 
 - **🧠 Inteligência Artificial**
@@ -46,7 +51,9 @@ Este projeto é um MVP de um sistema inteligente de atendimento ao cliente via *
   - ⚙️ **C# e .NET 9** – linguagem da API REST
 
 - **🧰 Outros**
+  - 🌍 **Azure Static Web Apps** – hospedagem da interface Blazor
   - 🔍 **Azure Cognitive Search** – usado inicialmente com busca tradicional (etapa removida ao final)
+
 ---
 
 ## 📚 Knowledge Base (KB)
@@ -117,6 +124,16 @@ Durante a execução, o sistema compara a similaridade semântica da mensagem do
        Ticket criado com ID: 15"
    }
    ```
+---
+
+## 🎯 Consulta de Tickets Abertos
+
+A lista de tickets abertos pode ser consultada por meio da interface web desenvolvida em **Blazor WebAssembly**, que consome a API publicada separadamente.  
+A aplicação permite visualizar os chamados registrados e acompanhar seus status.
+
+🔗 **Acesse a aplicação**:  
+[https://kind-ocean-052d2c710.1.azurestaticapps.net/](https://kind-ocean-052d2c710.1.azurestaticapps.net/)
+
 ---
 
 ## 🧪 Testes de API
@@ -311,3 +328,25 @@ Certifique-se de que o arquivo `local.settings.json` esteja presente na raiz do 
 ```
 
 > ℹ️ Substitua os valores em branco pelas suas chaves reais de API (mantidas em segredo e **nunca commitadas no GitHub**).
+
+---
+
+## ☁️ Stack Microsoft
+
+O projeto está 100% hospedado e operando com recursos da **nuvem Microsoft Azure**, aproveitando o ecossistema integrado para IA, APIs, dados e deploy.
+
+### Recursos Utilizados no Azure
+
+| Recurso                    | Tipo                          | Finalidade                                               |
+|----------------------------|-------------------------------|----------------------------------------------------------|
+| **App Service**            | `aisupportapi`                | Hospedagem da API REST construída em C# e .NET 9         |
+| **Function App**           | `aisupportfunc`               | Azure Function em Python para processar mensagens do WhatsApp |
+| **Static Web App**         | `aisupportweb`                | Hospedagem do frontend Blazor WebAssembly                |
+| **SQL Database**           | `AiSupportDb`                 | Banco de dados relacional para armazenar os tickets      |
+| **Storage Account**        | `aisupportstorage01`          | Armazena os embeddings no formato JSON                   |
+| **Search Service**         | `aisupportkb` *(opcional)*    | Azure Cognitive Search (utilizado na etapa inicial)      |
+| **Application Insights**   | `aisupportapi`, `aisupportfunc` | Monitoramento e telemetria das aplicações               |
+| **Managed Identity**       | `aisupportapi-id-bf64`        | Permissão segura entre recursos                         |
+| **Log Analytics Workspace**| `DefaultWorkspace`            | Análise e insights avançados das aplicações              |
+
+> 🔗 Todos os recursos estão organizados principalmente no resource group `rg-aisupportapi`.
